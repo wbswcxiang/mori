@@ -7,26 +7,26 @@ This file provides guidance to agents when working with code in this repository.
 ### 模板系统优先级
 - 模板查找顺序：`config/template/` (自定义) > `mori/template/internal_template/` (内置)
 - 简短名称（如 `mori`）自动添加 `.jinja2` 扩展名并按优先级查找
-- 运行时信息（`current_time`, `current_date`）在 [`mori.py:_load_system_prompt()`](mori/mori.py:85) 中注入，不在模板中硬编码
+- 运行时信息（`current_time`, `current_date`）在 [`mori.py:_load_system_prompt()`](mori/mori.py:117) 中注入，不在模板中硬编码
 
 ### 配置加载机制
-- 环境变量格式：`${ENV_VAR_NAME}` 在 [`config.py:resolve_env_var()`](mori/config.py:25) 中解析
+- 环境变量格式：`${ENV_VAR_NAME}` 在 [`config.py:resolve_env_var()`](mori/config.py:27) 中解析
 - 配置文件必须分离：`models.yaml` (模型), `agents.yaml` (agent), `config.yaml` (全局)
 - Agent 通过 `model` 字段引用 `models.yaml` 中的模型名称，不是直接配置
 
 ### Model 和 Formatter 配对
-- 每个模型类型必须配对对应的 Formatter（见 [`mori.py:_create_model()`](mori/mori.py:108)）
+- 每个模型类型必须配对对应的 Formatter（见 [`mori.py:_create_model()`](mori/mori.py:127)）
 - OpenAI 兼容接口使用 `model_type: openai` + `base_url` 参数
 - `client_args` 用于传递额外的客户端参数（如 `base_url`）
 
 ### 工具注册模式
-- 工具函数必须返回 [`ToolResponse`](mori/tool/internal_tools/example_tools.py:13) 对象，不是普通字符串
+- 工具函数必须返回 [`ToolResponse`](mori/tool/internal_tools/example_tools.py:20) 对象，不是普通字符串
 - 使用 [`toolkit.register_tool_function()`](mori/tool/internal_tools/example_tools.py:92) 注册，AgentScope 自动解析函数签名为 JSON Schema
 - 工具函数支持 async/await
 
 ### 响应内容提取
 - Agent 响应可能是字符串或包含 `TextBlock` 的列表
-- 使用 [`_extract_text_from_response()`](mori/mori.py:197) 统一处理不同格式
+- 使用 [`_extract_text_from_response()`](mori/mori.py:383) 统一处理不同格式
 
 ### 长期记忆配置
 - 嵌入模型配置在 `models.yaml` 的 `embedding_models` 部分
@@ -42,15 +42,23 @@ This file provides guidance to agents when working with code in this repository.
 - 用户隔离：通过 `user_name` 区分不同用户的记忆数据
 
 ### 嵌入模型创建
-- 在 [`mori.py:_create_embedding_model()`](mori/mori.py:157) 中实现
+- 在 [`mori.py:_create_embedding_model()`](mori/mori.py:183) 中实现
 - 根据 `model_type` 创建对应的嵌入模型实例
-- 支持 `api_key`, `base_url`, `dimensions` 等参数配置
+- 必须显式设置 `dimensions` 参数，Mem0 从此推断向量维度
+- OpenAI 嵌入模型直接接受 `base_url` 参数，Ollama 需要通过 `client_args` 传递
 
 ### 长期记忆实例化
-- 在 [`mori.py:_create_long_term_memory()`](mori/mori.py:213) 中实现
+- 在 [`mori.py:_create_long_term_memory()`](mori/mori.py:260) 中实现
 - 使用 `Mem0LongTermMemory` 类
-- 需要提供：主模型、嵌入模型、用户名、存储配置
+- 必须使用 [`NonStreamingModelWrapper`](mori/utils/model_wrapper.py:9) 包装主模型（Mem0 不支持流式响应）
+- 必须通过 `VectorStoreConfig` 显式传递 `embedding_model_dims` 参数
 - 在 `agent_control` 模式下自动注册 `record_to_memory` 和 `retrieve_from_memory` 工具
+
+## 依赖管理
+
+- 使用 `uv` 作为包管理器（不是 pip）
+- 安装依赖：`uv pip install -e .` 或 `uv pip install -e ".[dev]"`
+- 更新依赖：由 Dependabot 自动管理（每周一上午 9:00 北京时间）
 
 ## 测试命令
 
