@@ -73,19 +73,44 @@ class Mori:
         Returns:
             主Agent的回复内容
         """
-        self.logger.debug(f"用户消息: {message}")
+        self.logger.info(f"处理用户消息: {message}")
 
-        # 创建消息对象
-        msg = Msg(name="user", content=message, role="user")
+        try:
+            # 创建消息对象
+            msg = Msg(name="user", content=message, role="user")
 
-        # 调用主Agent
-        response = await self.primary_agent(msg)
+            # 调用主Agent
+            response = await self.primary_agent(msg)
 
-        # 提取文本内容
-        reply_text = extract_text_from_response(response)
+            # DEBUG: 记录完整响应对象
+            self.logger.debug(f"[DEBUG] Agent响应对象: {response}")
+            self.logger.debug(f"[DEBUG] 响应name: {response.name}")
+            self.logger.debug(f"[DEBUG] 响应role: {response.role}")
+            self.logger.debug(f"[DEBUG] 响应content类型: {type(response.content)}")
+            self.logger.debug(f"[DEBUG] 响应content: {response.content}")
 
-        self.logger.debug(f"Mori回复: {reply_text}")
-        return reply_text
+            # 提取文本内容
+            reply_text = extract_text_from_response(response)
+
+            self.logger.debug(f"[DEBUG] 提取后的文本: {reply_text}")
+            self.logger.info("成功生成回复")
+            return reply_text
+
+        except Exception as e:
+            # 捕获所有异常,包括 API 错误、工具错误等
+            error_msg = str(e)
+            self.logger.error(f"处理消息时发生错误: {error_msg}", exc_info=True)
+
+            # 检查是否是长期记忆相关错误
+            if "record_to_memory" in error_msg or "retrieve_from_memory" in error_msg:
+                return "抱歉,我在尝试记忆信息时遇到了问题。我已经记录了这个错误,会尽快修复。"
+            elif "can only concatenate list" in error_msg:
+                return "抱歉,处理您的请求时出现了内部错误。请稍后再试。"
+            elif "text cannot be empty" in error_msg:
+                return "抱歉,生成回复时出现了格式错误。请重新提问。"
+            else:
+                # 其他未知错误
+                return f"抱歉,处理您的请求时出现了错误: {error_msg}"
 
     async def reset(self) -> None:
         """重置主agent的对话历史"""

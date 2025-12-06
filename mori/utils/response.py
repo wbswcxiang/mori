@@ -3,7 +3,11 @@
 提供统一的响应内容提取功能。
 """
 
+import logging
+
 from agentscope.message import Msg
+
+logger = logging.getLogger(__name__)
 
 
 def extract_text_from_response(response: Msg) -> str:
@@ -25,9 +29,11 @@ def extract_text_from_response(response: Msg) -> str:
         text_parts = []
         for item in response.content:
             if isinstance(item, dict) and item.get("type") == "text":
-                text_parts.append(item.get("text", ""))
+                text = item.get("text", "")
+                text_parts.append(text)
             elif isinstance(item, str):
                 text_parts.append(item)
+
         return "\n".join(text_parts)
 
     return str(response.content)

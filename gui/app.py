@@ -59,12 +59,8 @@ class MoriGUI:
             return "", history
 
         try:
-            logger.info(f"处理用户消息: {message[:50]}...")
-
-            # 获取回复
+            # 获取回复 (mori.chat 已处理所有异常)
             response = await self.mori.chat(message)
-
-            logger.info(f"生成回复: {response[:50]}...")
 
             # 更新历史 - Gradio 6.0格式
             history.append({"role": "user", "content": message})
@@ -72,26 +68,11 @@ class MoriGUI:
 
             return "", history
 
-        except MoriError as e:
-            # Mori 业务错误，记录并返回友好提示
-            logger.error(f"处理消息时发生业务错误: {e}")
-            error_message = f"抱歉，处理您的消息时遇到了问题：{e.message}"
-
-            if e.details:
-                logger.debug(f"错误详情: {e.details}")
-
-            history.append({"role": "user", "content": message})
-            history.append({"role": "assistant", "content": error_message})
-
-            return "", history
-
         except Exception as e:
-            # 未预期的错误，记录完整堆栈并返回通用错误消息
-            logger.error(f"处理消息时发生未知错误: {e}")
-            logger.debug(traceback.format_exc())
+            # 最后一道防线: 捕获任何未被 mori.chat 处理的异常
+            logger.error(f"GUI层捕获到未处理的错误: {e}", exc_info=True)
 
-            error_message = "抱歉，处理您的消息时发生了意外错误，请稍后重试。"
-
+            error_message = "抱歉，系统出现了意外错误。请稍后重试。"
             history.append({"role": "user", "content": message})
             history.append({"role": "assistant", "content": error_message})
 
