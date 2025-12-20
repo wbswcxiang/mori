@@ -3,10 +3,8 @@
 提供记忆记录和检索功能的工具函数。
 """
 
-from typing import Any
-
 from agentscope.message import TextBlock
-from agentscope.tool import ToolResponse
+from agentscope.tool import Toolkit, ToolResponse
 
 from mori.exceptions import MemoryError
 
@@ -63,7 +61,7 @@ async def retrieve_from_memory(query: str, topic: str = "general") -> ToolRespon
         raise MemoryError(f"从记忆检索时出错: {str(e)}")
 
 
-def register_memory_tools(toolkit: Any) -> None:
+def register_memory_tools(toolkit: Toolkit) -> None:
     """注册长期记忆工具到Toolkit
 
     Args:

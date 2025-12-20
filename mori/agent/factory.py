@@ -7,7 +7,8 @@ from logging import Logger
 from typing import Any, Optional
 
 from agentscope.agent import ReActAgent
-from agentscope.memory import InMemoryMemory
+from agentscope.formatter import FormatterBase
+from agentscope.memory import InMemoryMemory, MemoryBase
 from agentscope.model import ChatModelBase
 from agentscope.tool import Toolkit
 
@@ -20,10 +21,10 @@ def create_mori_agent(
     agent_name: str,
     sys_prompt: str,
     model: ChatModelBase,
-    formatter: Any,
+    formatter: FormatterBase,
     toolkit: Optional[Toolkit] = None,
     parallel_tool_calls: bool = False,
-    long_term_memory: Optional[Any] = None,
+    long_term_memory: Optional[MemoryBase] = None,
     long_term_memory_mode: Optional[str] = None,
     **kwargs: Any,
 ) -> ReActAgent:

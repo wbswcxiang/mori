@@ -5,9 +5,11 @@
 
 from logging import Logger
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
+from agentscope.embedding import EmbeddingModelBase
 from agentscope.memory import Mem0LongTermMemory
+from agentscope.model import ChatModelBase
 
 from mori.utils.model_wrapper import NonStreamingModelWrapper
 
@@ -15,8 +17,8 @@ from mori.utils.model_wrapper import NonStreamingModelWrapper
 def create_long_term_memory(
     agent_name: str,
     user_name: str,
-    model: Any,
-    embedding_model: Any,
+    model: ChatModelBase,
+    embedding_model: EmbeddingModelBase,
     storage_path: str = "data/memory",
     on_disk: bool = True,
     logger: Optional[Logger] = None,
