@@ -75,11 +75,10 @@ def create_agent_tool_function(
         )
 
     async def tool_function(task: str) -> ToolResponse:
-        """
-        {description}
+        """{description}
 
         Args:
-            task: 要委派给agent的任务描述
+            task: 要委派给{agent_name} agent的任务描述
 
         Returns:
             任务执行结果
@@ -90,11 +89,11 @@ def create_agent_tool_function(
     tool_function.__name__ = f"call_{agent_name}_agent"
     tool_function.__doc__ = f"""{description}
 
-Args:
-    task: 要委派给{agent_name} agent的任务描述
+    Args:
+        task: 要委派给{agent_name} agent的任务描述
 
-Returns:
-    任务执行结果
-"""
+    Returns:
+        任务执行结果
+    """
 
     return tool_function

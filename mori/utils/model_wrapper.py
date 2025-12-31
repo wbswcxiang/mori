@@ -45,7 +45,13 @@ class NonStreamingModelWrapper(ChatModelBase):
 
         Returns:
             原始模型的对应属性
+
+        Raises:
+            AttributeError: 属性不存在
         """
+        # 避免代理特殊属性
+        if name.startswith("_"):
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
         return getattr(self.model, name)
 
     async def __call__(self, *args, **kwargs):

@@ -7,12 +7,23 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
+from mori.constants import (
+    DEFAULT_COLLECTION_NAME,
+    DEFAULT_LOG_DIR,
+    DEFAULT_LOG_LEVEL,
+    DEFAULT_MEMORY_STORAGE_PATH,
+    DEFAULT_SERVER_HOST,
+    DEFAULT_SERVER_PORT,
+    DEFAULT_VECTOR_STORE_PROVIDER,
+    VALID_MEMORY_MODES,
+)
 from mori.exceptions import (
     ConfigError,
     ConfigFileNotFoundError,
@@ -23,7 +34,7 @@ from mori.exceptions import (
 logger = logging.getLogger(__name__)
 
 
-def resolve_env_variable(value: Optional[str]) -> Optional[str]:
+def resolve_env_var(value: Optional[str]) -> Optional[str]:
     """解析环境变量引用
 
     支持 ${ENV_VAR_NAME} 格式的环境变量引用
@@ -36,7 +47,14 @@ def resolve_env_variable(value: Optional[str]) -> Optional[str]:
     """
     if value and value.startswith("${") and value.endswith("}"):
         env_var = value[2:-1]
-        return os.getenv(env_var)
+        # 验证环境变量名称格式，防止注入攻击
+        if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", env_var):
+            logger.error(f"无效的环境变量名称: {env_var}")
+            return value
+        result = os.getenv(env_var)
+        if result is None:
+            logger.warning(f"环境变量 {env_var} 未定义")
+        return result
     return value
 
 
@@ -55,7 +73,7 @@ class ModelConfig(BaseModel):
     @classmethod
     def resolve_api_key_env(cls, v: Optional[str]) -> Optional[str]:
         """解析API密钥中的环境变量引用"""
-        return resolve_env_variable(v)
+        return resolve_env_var(v)
 
 
 class EmbeddingModelConfig(BaseModel):
@@ -72,7 +90,7 @@ class EmbeddingModelConfig(BaseModel):
     @classmethod
     def resolve_api_key_env(cls, v: Optional[str]) -> Optional[str]:
         """解析API密钥中的环境变量引用"""
-        return resolve_env_variable(v)
+        return resolve_env_var(v)
 
 
 class LongTermMemoryConfig(BaseModel):
@@ -82,16 +100,17 @@ class LongTermMemoryConfig(BaseModel):
     user_name: str = Field(..., description="用户名，用于隔离不同用户的记忆数据")
     embedding_model: str = Field(..., description="引用models.yaml中的嵌入模型配置名")
     mode: str = Field("agent_control", description="记忆模式: agent_control, static_control, both")
-    storage_path: str = Field("data/memory", description="存储路径")
+    storage_path: str = Field(DEFAULT_MEMORY_STORAGE_PATH, description="存储路径")
     on_disk: bool = Field(True, description="是否持久化存储到磁盘")
+    vector_store_provider: str = Field(DEFAULT_VECTOR_STORE_PROVIDER, description="向量存储提供者")
+    collection_name: str = Field(DEFAULT_COLLECTION_NAME, description="向量集合名称")
 
     @field_validator("mode")
     @classmethod
     def validate_mode(cls, v: str) -> str:
         """验证记忆模式是否为有效值"""
-        valid_modes = {"agent_control", "static_control", "both"}
-        if v not in valid_modes:
-            raise ValueError(f"无效的记忆模式 '{v}'，必须是 {valid_modes} 之一")
+        if v not in VALID_MEMORY_MODES:
+            raise ValueError(f"无效的记忆模式 '{v}'，必须是 {VALID_MEMORY_MODES} 之一")
         return v
 
 
@@ -113,15 +132,15 @@ class AgentConfig(BaseModel):
 class GlobalConfig(BaseModel):
     """全局配置"""
 
-    log_level: str = Field("INFO", description="日志级别")
-    log_dir: str = Field("logs", description="日志目录")
+    log_level: str = Field(DEFAULT_LOG_LEVEL, description="日志级别")
+    log_dir: str = Field(DEFAULT_LOG_DIR, description="日志目录")
 
 
 class ServerConfig(BaseModel):
     """服务器配置"""
 
-    host: str = Field("0.0.0.0", description="服务器地址")
-    port: int = Field(7860, description="服务器端口")
+    host: str = Field(DEFAULT_SERVER_HOST, description="服务器地址")
+    port: int = Field(DEFAULT_SERVER_PORT, description="服务器端口")
     share: bool = Field(False, description="是否创建公共链接")
 
 

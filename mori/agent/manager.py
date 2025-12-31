@@ -96,8 +96,12 @@ class AgentManager:
 
         Returns:
             包含指定工具的Toolkit实例
+
+        Raises:
+            ValueError: 工具不存在
         """
         toolkit = Toolkit()
+        missing_tools = []
 
         # 从基础工具集中筛选该agent可用的工具
         for tool_name in tool_names:
@@ -105,8 +109,11 @@ class AgentManager:
             tool = self.base_toolkit.get(tool_name)
             if tool is not None:
                 toolkit.add(tool)
-            elif self.logger:
-                self.logger.warning(f"工具不存在: {tool_name}")
+            else:
+                missing_tools.append(tool_name)
+
+        if missing_tools and self.logger:
+            self.logger.warning(f"工具不存在: {', '.join(missing_tools)}")
 
         return toolkit
 

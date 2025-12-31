@@ -48,9 +48,14 @@ class TemplateLoader:
             # 默认使用config/template目录
             custom_template_dir = "config/template"
 
-        self.template_dir = Path(template_dir)
+        # 验证路径安全性（解析为绝对路径）
+        self.template_dir = Path(template_dir).resolve()
         self.internal_template_dir = self.template_dir / "internal_template"
-        self.custom_template_dir = Path(custom_template_dir)
+        self.custom_template_dir = Path(custom_template_dir).resolve()
+
+        # 确保内置模板目录存在
+        if not self.template_dir.exists():
+            raise ValueError(f"模板目录不存在: {self.template_dir}")
 
         # 确保自定义模板目录存在
         self.custom_template_dir.mkdir(parents=True, exist_ok=True)

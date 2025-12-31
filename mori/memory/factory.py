@@ -11,6 +11,11 @@ from agentscope.embedding import EmbeddingModelBase
 from agentscope.memory import Mem0LongTermMemory
 from agentscope.model import ChatModelBase
 
+from mori.constants import (
+    DEFAULT_COLLECTION_NAME,
+    DEFAULT_EMBEDDING_DIM,
+    DEFAULT_VECTOR_STORE_PROVIDER,
+)
 from mori.utils.model_wrapper import NonStreamingModelWrapper
 
 
@@ -21,6 +26,8 @@ def create_long_term_memory(
     embedding_model: EmbeddingModelBase,
     storage_path: str = "data/memory",
     on_disk: bool = True,
+    vector_store_provider: str = DEFAULT_VECTOR_STORE_PROVIDER,
+    collection_name: str = DEFAULT_COLLECTION_NAME,
     logger: Optional[Logger] = None,
 ) -> Mem0LongTermMemory:
     """根据配置创建长期记忆实例
@@ -37,6 +44,8 @@ def create_long_term_memory(
         embedding_model: 嵌入模型实例
         storage_path: 存储路径
         on_disk: 是否持久化存储
+        vector_store_provider: 向量存储提供者
+        collection_name: 向量集合名称
         logger: 日志记录器（可选）
 
     Returns:
@@ -52,7 +61,7 @@ def create_long_term_memory(
     wrapped_model = NonStreamingModelWrapper(model)
 
     # 获取嵌入模型维度
-    embedding_dim = getattr(embedding_model, "dimensions", 1536)
+    embedding_dim = getattr(embedding_model, "dimensions", DEFAULT_EMBEDDING_DIM)
     if logger:
         logger.info(f"嵌入模型维度: {embedding_dim}")
 
@@ -67,9 +76,9 @@ def create_long_term_memory(
 
     # 创建向量存储配置（必须显式传递 embedding_model_dims）
     vector_store_config = VectorStoreConfig(
-        provider="qdrant",
+        provider=vector_store_provider,
         config={
-            "collection_name": "mem0migrations",
+            "collection_name": collection_name,
             "embedding_model_dims": embedding_dim,
             "on_disk": on_disk,
             "path": storage_path if on_disk else None,
@@ -89,7 +98,10 @@ def create_long_term_memory(
 
     if logger:
         logger.info("准备创建 Mem0LongTermMemory")
-        logger.info(f"向量存储配置: provider=qdrant, dims={embedding_dim}, on_disk={on_disk}")
+        logger.info(
+            f"向量存储配置: provider={vector_store_provider}, "
+            f"collection={collection_name}, dims={embedding_dim}, on_disk={on_disk}"
+        )
 
     long_term_memory = Mem0LongTermMemory(**ltm_kwargs)
 

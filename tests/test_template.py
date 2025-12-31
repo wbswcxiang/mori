@@ -116,14 +116,15 @@ def test_template_backwards_compatibility():
 
 def test_custom_template_directory():
     """测试自定义模板目录"""
-    import os
+    from pathlib import Path
 
     loader = TemplateLoader()
 
     # 自定义模板目录应该存在
     assert loader.custom_template_dir.exists()
-    # 使用 os.path.normpath 来规范化路径，适配不同操作系统
-    assert os.path.normpath(str(loader.custom_template_dir)) == os.path.normpath("config/template")
+    # 路径现在被解析为绝对路径，检查是否正确
+    expected_path = Path("config/template").resolve()
+    assert loader.custom_template_dir == expected_path
 
 
 def test_custom_template_priority():
@@ -143,6 +144,7 @@ def test_template_loader_with_custom_dir():
     """测试指定自定义模板目录"""
     import os
     import tempfile
+    from pathlib import Path
 
     # 创建临时目录
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -153,6 +155,9 @@ def test_template_loader_with_custom_dir():
 
         # 使用自定义目录创建加载器
         loader = TemplateLoader(custom_template_dir=tmpdir)
+
+        # 自定义模板目录应该被解析为绝对路径
+        assert loader.custom_template_dir == Path(tmpdir).resolve()
 
         # 应该能加载自定义模板
         result = loader.render_template("test", {"name": "World"})

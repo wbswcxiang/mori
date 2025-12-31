@@ -5,6 +5,7 @@
 支持多agent架构。
 """
 
+import logging
 from typing import Any, Dict, List
 
 from agentscope.exception import (
@@ -89,12 +90,13 @@ class Mori:
             # 调用主Agent
             response = await self.primary_agent(msg)
 
-            # DEBUG: 记录完整响应对象
-            self.logger.debug(f"[DEBUG] Agent响应对象: {response}")
-            self.logger.debug(f"[DEBUG] 响应name: {response.name}")
-            self.logger.debug(f"[DEBUG] 响应role: {response.role}")
-            self.logger.debug(f"[DEBUG] 响应content类型: {type(response.content)}")
-            self.logger.debug(f"[DEBUG] 响应content: {response.content}")
+            # DEBUG: 记录完整响应对象（使用条件日志避免不必要的字符串格式化）
+            if self.logger.isEnabledFor(logging.DEBUG):
+                self.logger.debug(f"[DEBUG] Agent响应对象: {response}")
+                self.logger.debug(f"[DEBUG] 响应name: {response.name}")
+                self.logger.debug(f"[DEBUG] 响应role: {response.role}")
+                self.logger.debug(f"[DEBUG] 响应content类型: {type(response.content)}")
+                self.logger.debug(f"[DEBUG] 响应content: {response.content}")
 
             # 提取文本内容
             reply_text = extract_text_from_response(response)
@@ -139,11 +141,14 @@ class Mori:
                 return "抱歉,生成回复时出现了格式错误。请重新提问。"
             else:
                 return "抱歉,输入值不符合要求，请检查后重试。"
+        except (ConnectionError, TimeoutError) as e:
+            # 网络相关错误
+            self.logger.error(f"网络错误: {str(e)}", exc_info=True)
+            return "抱歉,网络连接出现问题，请稍后再试。"
         except Exception as e:
-            # 捕获所有其他异常,包括 API 错误、工具错误等
-            error_msg = str(e)
-            self.logger.error(f"处理消息时发生未知错误: {error_msg}", exc_info=True)
-            return f"抱歉,处理您的请求时出现了错误: {error_msg}"
+            # 其他未知错误
+            self.logger.error(f"处理消息时发生未知错误: {str(e)}", exc_info=True)
+            return "抱歉,处理您的请求时出现了错误。"
 
     async def reset(self) -> None:
         """重置主agent的对话历史"""
